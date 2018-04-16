@@ -26,8 +26,8 @@ func nHalves(mg int) (timesToDivide int) {
    return int(nDivides)
 }
 
-func calculateHl(t time.Time, mg int, remnants chan remnant) {
-    for inmg := mg; inmg >= 1; inmg /= 2 {
+func calculateRemnants(t time.Time, mg int, remnants chan remnant) {
+    for inmg := mg/2; inmg >= 1; inmg /= 2 {
         formatted := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
             t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
 
@@ -65,40 +65,71 @@ func opendata(format string) (file *os.File) {
     return f
 }
 
+func marshallRemnant(format string, remrem remnant) (formatted string) {
+    if format == "json" {
+        line := fmt.Sprintf("     {\"time\": \"%s\", \"remnant\": %d}", remrem.date, remrem.amount)
+        if (remrem.amount > 1) {
+            line += ","
+        }
+        return line + "\n"
+    } else {
+        return fmt.Sprintf("%s,%d\n", remrem.date, remrem.amount)
+    }
+}
+
+type dose struct {
+    name string
+    dosage int
+    time string
+    remnants []remnant
+}
+
+func marshallDose(format string, dokidoki dose) (formatted string) {
+    if format == "json" {
+        return fmt.Sprintf("   {\"name\": \"%s\",\n    \"dosage\": %d\n" +
+                   "    \"time\": \"%s\"\n    \"remnants\": [", dokidoki.name, dokidoki.dosage, dokidoki.time)
+    } else {
+        return fmt.Sprintf("%s,%d", dokidoki.time, dokidoki.dosage)
+    }
+}
+
 func main() {
-    writePtr := flag.Bool("write", false, "write output to caffeine.csv")
+    writePtr := flag.Bool("write", false, "write output according to format")
     outputFmt := flag.String("format", "csv", "use format \"csv\" or \"json\"")
-    ts := flag.String("time", "now", "time of dosage, e.g. 2018-04-16T17:22:40Z")
-    dose := flag.Int("dose", 100, "caffeine dosage in mg")
+    tf := flag.String("time", "now", "time of dosage, e.g. 2018-04-16T17:22:40Z")
+    dosaggio := flag.Int("dosage", 100, "caffeine dosage in mg")
+    nombre := flag.String("name", "Americano", "name of caffeine product")
     flag.Parse()
 
     t := time.Now()
     var err error
-    if *ts != "now" {
-        t, err = time.Parse(time.RFC3339, *ts)
+    if *tf != "now" {
+        t, err = time.Parse(time.RFC3339, *tf)
         check(err)
     }
+    ts := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
+            t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
 
     var f *os.File
+    doshi := dose { name: *nombre, dosage: *dosaggio, time: ts, remnants: nil  }
+    sadoshi := marshallDose(*outputFmt, doshi)
     if *writePtr == true {
         f = opendata(*outputFmt)
         defer f.Close()
+        _, err = f.WriteString(sadoshi)
+        check(err)
     } else {
         fmt.Println(header(*outputFmt))
+        fmt.Println(sadoshi)
     }
 
-    bufSize := nHalves(*dose) + 1
+    bufSize := nHalves(*dosaggio)
     channel := make(chan remnant, bufSize)
-    go calculateHl(t, *dose, channel)
+    go calculateRemnants(t, *dosaggio, channel)
 
     var line string
     for remy := range channel {
-
-        if *outputFmt == "json" {
-            line = fmt.Sprintf("  {\"time\": \"%s\", \"remnant\": %d}\n", remy.date, remy.amount)
-        } else {
-            line = fmt.Sprintf("%s,%d\n", remy.date, remy.amount)
-        }
+        line = marshallRemnant(*outputFmt, remy)
 
         if *writePtr == true {
             _, err = f.WriteString(line)
@@ -109,7 +140,7 @@ func main() {
     }
 
     if *outputFmt == "json" {
-        footer := "]\n"
+        footer := "   ]\n  }\n]\n"
         if *writePtr == true {
             _, err = f.WriteString(footer)
         } else {
