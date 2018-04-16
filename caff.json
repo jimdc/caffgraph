@@ -14,8 +14,15 @@
   },
   {
    "name": "No-Doze",
-   "dosage": 100,
+   "dosage": 95,
    "time": "2018-04-17T03:20:10Z",
-   "remnants": []
+   "remnants": [
+     {"time": "2018-04-17T09:02:10Z", "remnant": 47},
+     {"time": "2018-04-17T14:44:10Z", "remnant": 23},
+     {"time": "2018-04-17T20:26:10Z", "remnant": 11},
+     {"time": "2018-04-18T02:08:10Z", "remnant": 5},
+     {"time": "2018-04-18T07:50:10Z", "remnant": 2},
+     {"time": "2018-04-18T13:32:10Z", "remnant": 1}
+   ]
   }
 ]                               

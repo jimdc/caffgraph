@@ -4,10 +4,7 @@ import (
     "math"
     "flag"
     "fmt"
-    "bufio"
     "os"
-    "strconv"
-    "strings"
     "time"
 )
 
@@ -17,59 +14,19 @@ func check(e error) {
     }
 }
 
-func getEntryTime() (t time.Time, err error) {
-    reader := bufio.NewReader(os.Stdin)
-
-    fmt.Print("Enter time: ")
-    str, _ := reader.ReadString('\n')
-    str = strings.TrimSpace(str)
-
-    if (str != "") {
-        t1, e := time.Parse(time.RFC3339, str)
-        if e != nil {
-            return time.Time{}, e
-        }
-
-        return t1, nil
-    }
-
-    fmt.Println("Using default current time.")
-    return time.Now(), nil
-}
-
-func getEntryMg() (mg int64, err error) {
-    reader := bufio.NewReader(os.Stdin)
-
-    fmt.Print("Enter mg: ")
-    str, _ := reader.ReadString('\n')
-    str = strings.TrimSpace(str)
-
-    if (str != "") {
-        userMg, e := strconv.ParseInt(strings.TrimSpace(str), 10, 64)
-        if e != nil {
-            return -1, e
-        }
-
-        return userMg, nil
-    }
-
-    fmt.Println("Using default 100mg.")
-    return 100, nil
-}
-
 type remnant struct {
     date string
-    amount int64
+    amount int
 }
 
 // math.Round doesn't round up, so compensate when allocating
-func nHalves(mg int64) (timesToDivide int64) {
+func nHalves(mg int) (timesToDivide int) {
    fmg := float64(mg)
    nDivides := math.Round(math.Log2(fmg))
-   return int64(nDivides)
+   return int(nDivides)
 }
 
-func calculateHl(t time.Time, mg int64, remnants chan remnant) {
+func calculateHl(t time.Time, mg int, remnants chan remnant) {
     for inmg := mg; inmg >= 1; inmg /= 2 {
         formatted := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
             t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
@@ -82,37 +39,81 @@ func calculateHl(t time.Time, mg int64, remnants chan remnant) {
     close(remnants)
 }
 
-func main() {
-    writePtr := flag.Bool("write", false, "write csv output to caffeine.csv")
-    flag.Parse()
-    var f *os.File
-
-    t, err := getEntryTime()
-    check(err)
-
-    mg, err := getEntryMg()
-    check(err)
-
-    if *writePtr == true {
-        f, err = os.Create("caffeine.csv")
-        check(err)
-        _, err2 := f.WriteString("date,close\n")
-        check(err2)
-        defer f.Close()
+func header(format string) (headerFormatted string) {
+    if format == "json" {
+        return "[";
     } else {
-        fmt.Println("date,close")
+        return "date,close"
+    }
+}
+
+func opendata(format string) (file *os.File) {
+    var filename string
+    if format == "json" {
+        fmt.Println("using json format")
+        filename = "caff.json"
+    } else {
+        fmt.Println("using csv format")
+        filename = "caff.csv"
     }
 
-    bufSize := nHalves(mg) + 1
-    c := make(chan remnant, bufSize)
-    go calculateHl(t, mg, c)
-    for remy := range c {
-        csv := fmt.Sprintf("%s,%d\n", remy.date, remy.amount)
-        if *writePtr == true {
-            _, err3 := f.WriteString(csv)
-            check(err3)
+    f, err := os.Create(filename)
+    check(err)
+    _, err = f.WriteString(header(format))
+    check(err)
+
+    return f
+}
+
+func main() {
+    writePtr := flag.Bool("write", false, "write output to caffeine.csv")
+    outputFmt := flag.String("format", "csv", "use format \"csv\" or \"json\"")
+    ts := flag.String("time", "now", "time of dosage, e.g. 2018-04-16T17:22:40Z")
+    dose := flag.Int("dose", 100, "caffeine dosage in mg")
+    flag.Parse()
+
+    t := time.Now()
+    var err error
+    if *ts != "now" {
+        t, err = time.Parse(time.RFC3339, *ts)
+        check(err)
+    }
+
+    var f *os.File
+    if *writePtr == true {
+        f = opendata(*outputFmt)
+        defer f.Close()
+    } else {
+        fmt.Println(header(*outputFmt))
+    }
+
+    bufSize := nHalves(*dose) + 1
+    channel := make(chan remnant, bufSize)
+    go calculateHl(t, *dose, channel)
+
+    var line string
+    for remy := range channel {
+
+        if *outputFmt == "json" {
+            line = fmt.Sprintf("  {\"time\": \"%s\", \"remnant\": %d}\n", remy.date, remy.amount)
         } else {
-            fmt.Printf(csv)
+            line = fmt.Sprintf("%s,%d\n", remy.date, remy.amount)
+        }
+
+        if *writePtr == true {
+            _, err = f.WriteString(line)
+            check(err)
+        } else {
+            fmt.Printf(line)
+        }
+    }
+
+    if *outputFmt == "json" {
+        footer := "]\n"
+        if *writePtr == true {
+            _, err = f.WriteString(footer)
+        } else {
+            fmt.Printf(footer)
         }
     }
 }
