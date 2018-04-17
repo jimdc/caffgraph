@@ -2,7 +2,7 @@
 This program consists of two components: 
 
 1. a Go program that converts a timestamped dosage of caffeine to a list of estimates for how much remains in the system 
-2. a D3.js page that visualizes in line graph form, from that Go output, how much caffeine is in the body at one times
+2. a D3.js page that visualizes in line graph form, from that Go output, how much caffeine is in the body at one time
 
 It's currently in transition between the old csv format that could not easily account for additional dosing before the previous caffeine was previously flushed out; and a new json format that does. That's why there are two html files.
 
