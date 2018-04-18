@@ -24,14 +24,16 @@ func Halves(mg int) (timesToDivide int) {
 	return int(nDivides)
 }
 
+// isn't this the standard? (I might have written it custom when it wasn't, 
+// then manually changed it back to output the standard time)
+func formatTime(t time.Time) (tt string) {
+	return fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
+		t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+}
+
 func CalculateRemnants(t time.Time, mg int, Remnants chan Remnant) {
 	for inmg := mg / 2; inmg >= 1; inmg /= 2 {
-		// TODO: turn this duplicated formatting string into a function
-		formatted := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
-			t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
-
-		Remnants <- Remnant{Date: formatted, Amount: inmg}
-
+		Remnants <- Remnant{Date: formatTime(t), Amount: inmg}
 		//The halflife of caffeine is 5.7 hours, aka 5 hours and 42 minutes
 		t = t.Add(time.Hour*5 + time.Minute*42)
 	}
@@ -98,11 +100,8 @@ func main() {
 		t, err = time.Parse(time.RFC3339, *tf)
 		check(err)
 	}
-	ts := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
-		t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
-
 	var f *os.File
-	doshi := Dose{Name: *nombre, Dosage: *dosaggio, Time: ts, Remnants: nil}
+	doshi := Dose{Name: *nombre, Dosage: *dosaggio, Time: formatTime(t), Remnants: nil}
 	// TODO: check if this is really the beginning of the file and add [ if so. Not otherwise.
 	sadoshi := "[\n" + marshalDose(doshi)
 	if *writePtr == true {
