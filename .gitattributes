@@ -1,1 +1,2 @@
 *.txt linguist-language=Javascript
+*.html linguist-vendored
