@@ -18,13 +18,13 @@ func check(e error) {
 }
 
 // math.Round doesn't round up, so compensate when allocating
-func nHalves(mg int) (timesToDivide int) {
+func Halves(mg int) (timesToDivide int) {
 	fmg := float64(mg)
 	nDivides := math.Round(math.Log2(fmg))
 	return int(nDivides)
 }
 
-func calculateRemnants(t time.Time, mg int, Remnants chan Remnant) {
+func CalculateRemnants(t time.Time, mg int, Remnants chan Remnant) {
 	for inmg := mg / 2; inmg >= 1; inmg /= 2 {
 		formatted := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
 			t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
@@ -90,7 +90,7 @@ type Dose struct {
 func marshallDose(format string, dokidoki Dose) (formatted string) {
 	if format == "json" {
 		return fmt.Sprintf("  {\"name\": \"%s\",\n   \"dosage\": %d,\n"+
-			"   \"time\": \"%s\"\n   \"remnants\": [", dokidoki.Name, dokidoki.Dosage, dokidoki.Time)
+			"   \"time\": \"%s\",\n   \"remnants\": [", dokidoki.Name, dokidoki.Dosage, dokidoki.Time)
 	} else {
 		return fmt.Sprintf("%s,%d", dokidoki.Time, dokidoki.Dosage)
 	}
@@ -154,9 +154,9 @@ func main() {
 		fmt.Println(sadoshi)
 	}
 
-	bufSize := nHalves(*dosaggio)
+	bufSize := Halves(*dosaggio)
 	channel := make(chan Remnant, bufSize)
-	go calculateRemnants(t, *dosaggio, channel)
+	go CalculateRemnants(t, *dosaggio, channel)
 
 	var line string
 	for remy := range channel {
@@ -173,10 +173,11 @@ func main() {
 		}
 	}
 
-	if *outputFmt == "json" {
-		footer := "   ]\n  }\n]\n"
+	if footer := "   ]\n  }\n]\n";
+	   *outputFmt == "json" {
 		if *writePtr == true {
 			_, err = f.WriteString(footer)
+			check(err)
 		} else {
 			fmt.Printf(footer)
 		}
