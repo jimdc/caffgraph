@@ -26,7 +26,7 @@ var csvSvg = d3.select("body").append("svg")
           "translate(" + csvMargin.left + "," + csvMargin.top + ")");
 
 // Get the data
-d3.csv("caff.csv", function(error, data) {
+d3.csv("caffeine.csv", function(error, data) {
   if (error) throw error;
 
   // format the data

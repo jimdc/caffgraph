@@ -29,7 +29,7 @@ var svg = d3.select("body").append("svg")
           "translate(" + margin.left + "," + margin.top + ")");
 
 // Get the data
-d3.json("caff.json", function(error, data) {
+d3.json("caffeine.json", function(error, data) {
   if (error) throw error;
 
   // format the data

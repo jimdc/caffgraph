@@ -1,17 +1,40 @@
 package main
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
-func TestCalculateRemnants(t *testing.T) {
+func TestHalves(t *testing.T) {
 
-	bufSize := Halves(100)
-	if bufSize != 7 {
-		t.Errorf("bufSize was incorrect, got: %d, want: %d.", bufSize, 7)
+	tables := []struct {
+		initial int
+		halves int
+	} {
+		{100, 7},
+		{200, 8},
+		{5, 2},
 	}
 
-	//channel := make(chan Remnant, bufSize)
-	//go CalculateRemnants(time.Now(), 100, channel)
-	//for remy := range channel { }
+	for _, table := range tables {
+		caffHalves := Halves(table.initial)
+		if caffHalves != table.halves {
+			t.Errorf("Halvgorithm of %d was incorrect, got: %d, want: %d.",
+				table.initial, caffHalves, table.halves)
+		}
+	}
+}
 
-	//Next: do test tables https://blog.alexellis.io/golang-writing-unit-tests/
+func TestCalculateRemnants(t *testing.T) {
+	dosage := 100
+	bufSize := Halves(dosage)
+
+	channel := make(chan Remnant, bufSize)
+	go CalculateRemnants(time.Now(), dosage, channel)
+	for remy := range channel {
+		if remy.Amount >= dosage {
+			t.Errorf("Remnant calculation of %d was incorrect, got %d",
+				dosage, remy.Amount)
+		}
+	}
 }

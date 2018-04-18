@@ -4,7 +4,7 @@ This program consists of two components:
 1. a Go program that converts a timestamped dosage of caffeine to a list of estimates for how much remains in the system 
 2. a D3.js page that visualizes in line graph form, from that Go output, how much caffeine is in the body at one time
 
-It's currently in transition between the old csv format that could not easily account for additional dosing before the previous caffeine was previously flushed out; and a new json format that does. That's why there are two html files.
+It's currently in transition between the old csv format that could not easily account for additional dosing before the previous caffeine was previously flushed out; and a new json format that does.
 
 ## index.html
 csv-prototyped graph:
@@ -13,7 +13,7 @@ csv-prototyped graph:
 ## halflife.go
 Adding the `-write` flag here would have written this output to the filesystem. Use the `-help` flag to see all options.
 ```
-> go run halflife.go -format=json -time=2018-04-15T11:20:00Z -dosage=95
+> go run halflife.go -time=2018-04-15T11:20:00Z -dosage=95
 [
   {"name": "Americano",
    "dosage": 95,
