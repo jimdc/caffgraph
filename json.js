@@ -14,7 +14,9 @@ var y = d3.scaleLinear().range([height, 0]);
 var dosageline = d3.line()
     .x(function(d) { return x(d.time); })
     .y(function(d) { return y(d.dosage); });
+
 var remnantlines = [];
+var remnantdata = [];
 
 // append the svg obgect to the body of the page
 // appends a 'group' element to 'svg'
@@ -33,6 +35,7 @@ d3.json("caff.json", function(error, data) {
   // format the data
   data.forEach(function(d) {
       d.time = parseTime(d.time);
+      d.dosage = +d.dosage;
 
       var remnants = d.remnants;
       if (remnants) {
@@ -41,12 +44,14 @@ d3.json("caff.json", function(error, data) {
           r.time = parseTime(r.time);  
         });
 
-        // define remnant lines
+        // d.remnants.remnant does not work
+        // maybe the domain needs to be scaled for max?
         remnantlines.push(
           d3.line()
           .x(function(d) { return x(d.time); })
-          .y(function(d) { return y(d.remnant); })
+          .y(function(d) { return y(d.remnants); })
         );
+        remnantdata.push(remnants)
       }
   });
 
@@ -78,26 +83,9 @@ d3.json("caff.json", function(error, data) {
       .append("g")
       .attr("class", "dose");
 
-  dose.append("g").selectAll("circle")
-      .data(function(d){return d.values})
-      .enter()
-      .append("circle")
-      .attr("r", 2)
-      .attr("cx", function(dd){return x(dd.time)})
-      .attr("cy", function(dd){return y(dd.dosage)})
-      .attr("fill", "none")
-      .attr("stroke", "black")
-
-  // This was supposed to circle the relevant points but it didn't
-  dose.append("text")
-      .datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
-      .attr("transform", function(d) { return "translate(" + x(d.value.time) + "," + y(d.value.dosage) + ")"; })
-      .attr("x", 3)
-      .attr("dy", ".35em")
-      .text(function(d) { return d.name; });
-
-  // Add the remnant lines' path (also didn't work as expected.)
-  remnantlines.forEach(function(r) {
+  // Add the remnant lines' path: does not work.
+  // Loops twice which is correct, but data doesn't work... 
+  remnantlines.forEach(function(r, index) {
       svg.append("path")
           .data([data])
           .attr("class", "line")
