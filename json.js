@@ -1,21 +1,3 @@
-<!DOCTYPE html>
-<meta charset="utf-8">
-<style> /* set the CSS */
-
-.line {
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 2px;
-}
-
-</style>
-<body>
-
-<!-- load the d3.js library -->    	
-<!--<script src="https://d3js.org/d3.v4.min.js"></script>-->
-<script src="d3.v4.min.js"></script>
-<script>
-
 // set the dimensions and margins of the graph
 var margin = {top: 20, right: 40, bottom: 30, left: 50},
     width = 800 - margin.left - margin.right,
@@ -157,6 +139,3 @@ d3.json("caff.json", function(error, data) {
       .style("fill", "steelblue")
       .text("dose");
 });
-
-</script>
-</body>
