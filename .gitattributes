@@ -1,1 +1,2 @@
 *.txt linguist-language=Javascript
+d3.v4.min.js linguist-vendored
