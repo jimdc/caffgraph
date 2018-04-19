@@ -24,20 +24,11 @@ func Halves(mg int) (timesToDivide int) {
 	return int(nDivides)
 }
 
-// isn't this the standard? (I might have written it custom when it wasn't, 
-// then manually changed it back to output the standard time)
-func formatTime(t time.Time) (tt string) {
-	return fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
-		t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
-}
-
-func CalculateRemnants(t time.Time, mg int, Remnants chan Remnant) {
-	for inmg := mg / 2; inmg >= 1; inmg /= 2 {
-		Remnants <- Remnant{Date: formatTime(t), Amount: inmg}
-		//The halflife of caffeine is 5.7 hours, aka 5 hours and 42 minutes
-		t = t.Add(time.Hour*5 + time.Minute*42)
-	}
-	close(Remnants)
+// TODO: right now just using a strict average. Better to have a range? (upper, lower)
+type Alimentarius struct {
+        Name     string        `json:"name"`
+        Onset    time.Duration `json:"onset"`
+        Halflife time.Duration `json:"halflife"`
 }
 
 type Remnant struct {
@@ -46,10 +37,30 @@ type Remnant struct {
 }
 
 type Dose struct {
-	Name     string    `json:"name"`
-	Dosage   int       `json:"dosage"`
-	Time     string    `json:"time"`
-	Remnants []Remnant `json:"remnants"`
+        Name     string    `json:"name"`
+        Dosage   int       `json:"dosage"`
+        Time     string    `json:"time"`
+        Remnants []Remnant `json:"remnants"`
+}
+
+func CalculateRemnants(damage Dose, Remnants chan Remnant) {
+
+	kafeiyin := Alimentarius { Name: "caffeine", Onset: time.Hour*1, Halflife: (time.Hour*5 + time.Minute*42) }
+	// niguding := Alimentarius { Name: "nicotine", Onset: time.Second*5, Halflife: time.Hour*2 }
+	// naipusheng := Alimentarius { Name: "naproxen", Onset: time.Minute*30, Halflife: time.Hour*13 }
+
+	t, err := time.Parse(time.RFC3339, damage.Time)
+	check(err)
+	ts := damage.Time
+
+	for remaining := damage.Dosage / 2; remaining >= 1; remaining /= 2 {
+		Remnants <- Remnant{Date: ts, Amount: remaining}
+
+		t = t.Add(kafeiyin.Halflife)
+		ts = t.Format(time.RFC3339)
+	}
+
+	close(Remnants)
 }
 
 func marshalDose(dokidoki Dose) (formatted string) {
@@ -57,7 +68,7 @@ func marshalDose(dokidoki Dose) (formatted string) {
 		"   \"time\": \"%s\",\n   \"remnants\": [\n", dokidoki.Name, dokidoki.Dosage, dokidoki.Time)
 }
 
-var Filename = "caff.json"
+const Filename string = "caff.json"
 
 func main() {
 	writePtr := flag.Bool("write", false, "write output to " + Filename)
@@ -94,16 +105,18 @@ func main() {
 		}
 	}
 
+	// TODO: see if it's possible to hide some value in struct from json parser? All this conversion seems ineff
 	t := time.Now()
 	var err error
 	if *tf != "now" {
 		t, err = time.Parse(time.RFC3339, *tf)
 		check(err)
 	}
-	var f *os.File
-	doshi := Dose{Name: *nombre, Dosage: *dosaggio, Time: formatTime(t), Remnants: nil}
+	ts := t.Format(time.RFC3339)
+	doshi := Dose{Name: *nombre, Dosage: *dosaggio, Time: ts, Remnants: nil}
 	// TODO: check if this is really the beginning of the file and add [ if so. Not otherwise.
 	sadoshi := "[\n" + marshalDose(doshi)
+	var f *os.File
 	if *writePtr == true {
 		f, err = os.OpenFile(Filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		check(err)
@@ -117,7 +130,7 @@ func main() {
 
 	bufSize := Halves(*dosaggio)
 	channel := make(chan Remnant, bufSize)
-	go CalculateRemnants(t, *dosaggio, channel)
+	go CalculateRemnants(doshi, channel)
 
 	var line string;
 	for remy := range channel {
