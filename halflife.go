@@ -44,12 +44,9 @@ type Dose struct {
         Remnants []Remnant `json:"remnants"`
 }
 
-/*
 type Temple struct {
 	Offerings []Dose           `json:"offerings"`
-	Metabolizers []Metabolizer `json:"metabolizers"`
 }
-*/
 
 func Metabolize(damage Dose, instruction Metabolizer, Results chan Remnant) {
 
@@ -69,8 +66,7 @@ func Metabolize(damage Dose, instruction Metabolizer, Results chan Remnant) {
 
 const Filename string = "caff.json"
 
-// This function name will make more sense when it isn't only []Dose but also include Alim info.
-func LoadTemple() (doses []Dose) {
+func LoadDoses() (doses []Dose) {
 	jsonFile, err := os.Open(Filename)
 	check(err)
 
@@ -86,37 +82,36 @@ func LoadTemple() (doses []Dose) {
 	return ds
 }
 
+func WriteDoses(doses []Dose, toStdout bool) {
+        printable, err := json.Marshal(doses)
+        check(err)
+
+        if toStdout == false {
+                f, err := os.OpenFile(Filename, os.O_CREATE|os.O_WRONLY, 0644)
+                check(err)
+                _, err = f.WriteString(string(printable))
+                check(err)
+                f.Close()
+        } else {
+                fmt.Println(string(printable))
+	}
+}
+
 func main() {
 	flagWrite := flag.Bool("write", false, "write output to " + Filename)
-	flagTime := flag.String("time", "now", "time of dosage, e.g. 2018-04-16T17:22:40Z")
+	flagTime := flag.String("time", "2018-04-15T11:20:00Z", "time of dosage, e.g. 2018-04-16T17:22:40Z")
 	flagDosage := flag.Int("dosage", 100, "caffeine dosage in mg")
 	flagName := flag.String("name", "Americano", "name of caffeine product")
 	flagRead := flag.Bool("read", false, "read json in " + Filename)
 	flag.Parse()
-        // TODO: see if it's possible to hide some value in struct from json parser? All this conversion seems ineff
-        t := time.Now()
-        var err error
-        if *flagTime != "now" {
-                t, err = time.Parse(time.RFC3339, *flagTime)
-                check(err)
-        }
-        ts := t.Format(time.RFC3339)
-        inputDose := Dose{Name: *flagName, Dosage: *flagDosage, Time: ts, Remnants: nil}
 
-	//TODO: integrate with write, to not have duplicate arrays and stuff
+	var doses []Dose
 	if *flagRead == true {
-		doses := LoadTemple()
-		fmt.Printf("%v\n", doses)
-		os.Exit(0)
+		doses = LoadDoses()
+		fmt.Printf("Read in %d doses from file; input will be appended.\n", len(doses))
 	}
 
-	var f *os.File
-	if *flagWrite == true {
-		f, err = os.OpenFile(Filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		check(err)
-		defer f.Close()
-	}
-
+        inputDose := Dose{ Name: *flagName, Dosage: *flagDosage, Time: *flagTime, Remnants: nil }
 	bufSize := Halves(*flagDosage)
 	channel := make(chan Remnant, bufSize)
 
@@ -126,13 +121,6 @@ func main() {
 		inputDose.Remnants = append(inputDose.Remnants, remnant)
 	}
 
-	printable, err := json.Marshal(inputDose)
-	check(err)
-
-	if *flagWrite == true {
-		_, err = f.WriteString(string(printable))
-		check(err)
-	} else {
-		fmt.Println(string(printable))
-	}
+	doses = append(doses, inputDose)
+	WriteDoses(doses, !(*flagWrite))
 }
