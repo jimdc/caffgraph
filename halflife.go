@@ -2,7 +2,6 @@ package main
 
 import (
 	"io/ioutil"
-	"strconv"
 	"flag"
 	"fmt"
 	"math"
@@ -25,11 +24,13 @@ func Halves(mg int) (timesToDivide int) {
 }
 
 // TODO: right now just using a strict average. Better to have a range? (upper, lower)
-type Alimentarius struct {
+type Metabolizer struct {
         Name     string        `json:"name"`
         Onset    time.Duration `json:"onset"`
         Halflife time.Duration `json:"halflife"`
 }
+// niguding := Metabolizer { Name: "nicotine", Onset: time.Second*5, Halflife: time.Hour*2 }
+// naipusheng := Metabolizer { Name: "naproxen", Onset: time.Minute*30, Halflife: time.Hour*13 }
 
 type Remnant struct {
         Date   string `json:"time"`
@@ -43,27 +44,47 @@ type Dose struct {
         Remnants []Remnant `json:"remnants"`
 }
 
-func CalculateRemnants(damage Dose, Remnants chan Remnant) {
+/*
+type Temple struct {
+	Offerings []Dose           `json:"offerings"`
+	Metabolizers []Metabolizer `json:"metabolizers"`
+}
+*/
 
-	kafeiyin := Alimentarius { Name: "caffeine", Onset: time.Hour*1, Halflife: (time.Hour*5 + time.Minute*42) }
-	// niguding := Alimentarius { Name: "nicotine", Onset: time.Second*5, Halflife: time.Hour*2 }
-	// naipusheng := Alimentarius { Name: "naproxen", Onset: time.Minute*30, Halflife: time.Hour*13 }
+func Metabolize(damage Dose, instruction Metabolizer, Results chan Remnant) {
 
 	t, err := time.Parse(time.RFC3339, damage.Time)
 	check(err)
 	ts := damage.Time
 
 	for remaining := damage.Dosage / 2; remaining >= 1; remaining /= 2 {
-		Remnants <- Remnant{Date: ts, Amount: remaining}
+		Results <- Remnant{Date: ts, Amount: remaining}
 
-		t = t.Add(kafeiyin.Halflife)
+		t = t.Add(instruction.Halflife)
 		ts = t.Format(time.RFC3339)
 	}
 
-	close(Remnants)
+	close(Results)
 }
 
 const Filename string = "caff.json"
+
+// This function name will make more sense when it isn't only []Dose but also include Alim info.
+func LoadTemple() (doses []Dose) {
+	jsonFile, err := os.Open(Filename)
+	check(err)
+
+	byteValue, err := ioutil.ReadAll(jsonFile)
+	check(err)
+
+	jsonFile.Close()
+
+	var ds []Dose
+	err = json.Unmarshal(byteValue, &ds)
+	check(err)
+
+	return ds
+}
 
 func main() {
 	flagWrite := flag.Bool("write", false, "write output to " + Filename)
@@ -80,34 +101,13 @@ func main() {
                 check(err)
         }
         ts := t.Format(time.RFC3339)
-        doshi := Dose{Name: *flagName, Dosage: *flagDosage, Time: ts, Remnants: nil}
+        inputDose := Dose{Name: *flagName, Dosage: *flagDosage, Time: ts, Remnants: nil}
 
 	//TODO: integrate with write, to not have duplicate arrays and stuff
 	if *flagRead == true {
-		jsonFile, err := os.Open(Filename)
-		check(err)
-		defer jsonFile.Close()
-
-		byteValue, err := ioutil.ReadAll(jsonFile)
-		check(err)
-
-		var ds []Dose
-		err = json.Unmarshal(byteValue, &ds)
-		check(err)
-		//fmt.Printf("%v\n", ds)
-
-		for i := 0; i < len(ds); i++ {
-			dis := ds[i]
-
-			fmt.Println("name: " + dis.Name)
-			fmt.Println("dosage: " + strconv.Itoa(dis.Dosage))
-			fmt.Println("time: " + dis.Time)
-
-			for j := 0; j < len(dis.Remnants); j++ {
-				fmt.Println("Remnant time: " + dis.Remnants[j].Date)
-				fmt.Println("Remnant Amount: " + strconv.Itoa(dis.Remnants[j].Amount))
-			}
-		}
+		doses := LoadTemple()
+		fmt.Printf("%v\n", doses)
+		os.Exit(0)
 	}
 
 	var f *os.File
@@ -119,12 +119,14 @@ func main() {
 
 	bufSize := Halves(*flagDosage)
 	channel := make(chan Remnant, bufSize)
-	go CalculateRemnants(doshi, channel)
-	for residuo := range channel {
-		doshi.Remnants = append(doshi.Remnants, residuo)
+
+	caffeine := Metabolizer { Name: "caffeine", Onset: time.Hour*1, Halflife: (time.Hour*5 + time.Minute*42) }
+	go Metabolize(inputDose, caffeine, channel)
+	for remnant := range channel {
+		inputDose.Remnants = append(inputDose.Remnants, remnant)
 	}
 
-	printable, err := json.Marshal(doshi)
+	printable, err := json.Marshal(inputDose)
 	check(err)
 
 	if *flagWrite == true {

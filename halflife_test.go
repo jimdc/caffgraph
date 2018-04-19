@@ -25,18 +25,18 @@ func TestHalves(t *testing.T) {
 	}
 }
 
-func TestCalculateRemnants(t *testing.T) {
+func TestMetabolize(t *testing.T) {
 	dosage := 100
 	bufSize := Halves(dosage)
+	dose := Dose { Name: "Chai Tea Latte", Dosage: dosage, Time: time.Now().Format(time.RFC3339) }
+	caffeine := Metabolizer { Name: "caffeine", Onset: time.Hour*1, Halflife: (time.Hour*5 + time.Minute*42) }
 
 	channel := make(chan Remnant, bufSize)
-	go CalculateRemnants(Dose { Name: "Chai Tea Latte", Dosage: dosage,
-		Time: time.Now().Format(time.RFC3339) }, channel)
-
-	for remy := range channel {
-		if remy.Amount >= dosage {
+	go Metabolize(dose, caffeine, channel)
+	for remnant := range channel {
+		if remnant.Amount >= dosage {
 			t.Errorf("Remnant calculation of %d was incorrect, got %d",
-				dosage, remy.Amount)
+				dosage, remnant.Amount)
 		}
 	}
 }
