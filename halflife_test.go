@@ -30,7 +30,9 @@ func TestCalculateRemnants(t *testing.T) {
 	bufSize := Halves(dosage)
 
 	channel := make(chan Remnant, bufSize)
-	go CalculateRemnants(time.Now(), dosage, channel)
+	go CalculateRemnants(Dose { Name: "Chai Tea Latte", Dosage: dosage,
+		Time: time.Now().Format(time.RFC3339) }, channel)
+
 	for remy := range channel {
 		if remy.Amount >= dosage {
 			t.Errorf("Remnant calculation of %d was incorrect, got %d",
