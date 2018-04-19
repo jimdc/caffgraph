@@ -63,22 +63,27 @@ func CalculateRemnants(damage Dose, Remnants chan Remnant) {
 	close(Remnants)
 }
 
-func marshalDose(dokidoki Dose) (formatted string) {
-	return fmt.Sprintf("  {\"name\": \"%s\",\n   \"dosage\": %d,\n"+
-		"   \"time\": \"%s\",\n   \"remnants\": [\n", dokidoki.Name, dokidoki.Dosage, dokidoki.Time)
-}
-
 const Filename string = "caff.json"
 
 func main() {
-	writePtr := flag.Bool("write", false, "write output to " + Filename)
-	tf := flag.String("time", "now", "time of dosage, e.g. 2018-04-16T17:22:40Z")
-	dosaggio := flag.Int("dosage", 100, "caffeine dosage in mg")
-	nombre := flag.String("name", "Americano", "name of caffeine product")
-	readPtr := flag.Bool("read", false, "read json in " + Filename)
+	flagWrite := flag.Bool("write", false, "write output to " + Filename)
+	flagTime := flag.String("time", "now", "time of dosage, e.g. 2018-04-16T17:22:40Z")
+	flagDosage := flag.Int("dosage", 100, "caffeine dosage in mg")
+	flagName := flag.String("name", "Americano", "name of caffeine product")
+	flagRead := flag.Bool("read", false, "read json in " + Filename)
 	flag.Parse()
+        // TODO: see if it's possible to hide some value in struct from json parser? All this conversion seems ineff
+        t := time.Now()
+        var err error
+        if *flagTime != "now" {
+                t, err = time.Parse(time.RFC3339, *flagTime)
+                check(err)
+        }
+        ts := t.Format(time.RFC3339)
+        doshi := Dose{Name: *flagName, Dosage: *flagDosage, Time: ts, Remnants: nil}
 
-	if *readPtr == true {
+	//TODO: integrate with write, to not have duplicate arrays and stuff
+	if *flagRead == true {
 		jsonFile, err := os.Open(Filename)
 		check(err)
 		defer jsonFile.Close()
@@ -105,57 +110,27 @@ func main() {
 		}
 	}
 
-	// TODO: see if it's possible to hide some value in struct from json parser? All this conversion seems ineff
-	t := time.Now()
-	var err error
-	if *tf != "now" {
-		t, err = time.Parse(time.RFC3339, *tf)
-		check(err)
-	}
-	ts := t.Format(time.RFC3339)
-	doshi := Dose{Name: *nombre, Dosage: *dosaggio, Time: ts, Remnants: nil}
-	// TODO: check if this is really the beginning of the file and add [ if so. Not otherwise.
-	sadoshi := "[\n" + marshalDose(doshi)
 	var f *os.File
-	if *writePtr == true {
+	if *flagWrite == true {
 		f, err = os.OpenFile(Filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		check(err)
 		defer f.Close()
-		// TODO: json.Marshal this dose. After calculating remnants. 
-		_, err = f.WriteString(sadoshi)
-		check(err)
-	} else {
-		fmt.Println(sadoshi)
 	}
 
-	bufSize := Halves(*dosaggio)
+	bufSize := Halves(*flagDosage)
 	channel := make(chan Remnant, bufSize)
 	go CalculateRemnants(doshi, channel)
-
-	var line string;
-	for remy := range channel {
-
-		remypretty, _ := json.MarshalIndent(remy, "", "    ")
-		line = string(remypretty)
-
-		bufSize--
-		if bufSize > 1 {
-			line += ","
-		}
-
-		if *writePtr == true {
-			_, err = f.WriteString(line+"\n")
-			check(err)
-		} else {
-			fmt.Println(line)
-		}
+	for residuo := range channel {
+		doshi.Remnants = append(doshi.Remnants, residuo)
 	}
 
-	if footer := "   ]\n  }\n]\n";
-	   *writePtr == true {
-		_, err = f.WriteString(footer)
+	printable, err := json.Marshal(doshi)
+	check(err)
+
+	if *flagWrite == true {
+		_, err = f.WriteString(string(printable))
 		check(err)
 	} else {
-		fmt.Printf(footer)
+		fmt.Println(string(printable))
 	}
 }
