@@ -23,31 +23,6 @@ func Halves(mg int) (timesToDivide int) {
 	return int(nDivides)
 }
 
-// TODO: right now just using a strict average. Better to have a range? (upper, lower)
-type Metabolizer struct {
-        Name     string        `json:"name"`
-        Onset    time.Duration `json:"onset"`
-        Halflife time.Duration `json:"halflife"`
-}
-// niguding := Metabolizer { Name: "nicotine", Onset: time.Second*5, Halflife: time.Hour*2 }
-// naipusheng := Metabolizer { Name: "naproxen", Onset: time.Minute*30, Halflife: time.Hour*13 }
-
-type Remnant struct {
-        Date   string `json:"time"`
-        Amount int    `json:"remnant"`
-}
-
-type Dose struct {
-        Name     string    `json:"name"`
-        Dosage   int       `json:"dosage"`
-        Time     string    `json:"time"`
-        Remnants []Remnant `json:"remnants"`
-}
-
-type Temple struct {
-	Offerings []Dose           `json:"offerings"`
-}
-
 func Metabolize(damage Dose, instruction Metabolizer, Results chan Remnant) {
 
 	t, err := time.Parse(time.RFC3339, damage.Time)
@@ -64,10 +39,10 @@ func Metabolize(damage Dose, instruction Metabolizer, Results chan Remnant) {
 	close(Results)
 }
 
-const Filename string = "caff.json"
+const defaultFilename string = "caff.json"
 
 func LoadDoses() (doses []Dose) {
-	jsonFile, err := os.Open(Filename)
+	jsonFile, err := os.Open(defaultFilename)
 	check(err)
 
 	byteValue, err := ioutil.ReadAll(jsonFile)
@@ -87,7 +62,7 @@ func WriteDoses(doses []Dose, toStdout bool) {
         check(err)
 
         if toStdout == false {
-                f, err := os.OpenFile(Filename, os.O_CREATE|os.O_WRONLY, 0644)
+                f, err := os.OpenFile(defaultFilename, os.O_CREATE|os.O_WRONLY, 0644)
                 check(err)
                 _, err = f.WriteString(string(printable))
                 check(err)
@@ -97,12 +72,14 @@ func WriteDoses(doses []Dose, toStdout bool) {
 	}
 }
 
+const defaultTime string = "2018-04-16T17:22:40Z"
+
 func main() {
-	flagWrite := flag.Bool("write", false, "write output to " + Filename)
-	flagTime := flag.String("time", "2018-04-15T11:20:00Z", "time of dosage, e.g. 2018-04-16T17:22:40Z")
+	flagWrite := flag.Bool("write", false, "write output to " + defaultFilename)
+	flagTime := flag.String("time", defaultTime, "time of dosage, e.g. " + defaultTime)
 	flagDosage := flag.Int("dosage", 100, "caffeine dosage in mg")
 	flagName := flag.String("name", "Americano", "name of caffeine product")
-	flagRead := flag.Bool("read", false, "read json in " + Filename)
+	flagRead := flag.Bool("read", false, "read json in " + defaultFilename)
 	flag.Parse()
 
 	var doses []Dose
