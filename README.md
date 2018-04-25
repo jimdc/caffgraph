@@ -8,7 +8,7 @@ It's currently in transition between the old csv format that could not easily ac
 
 ## index.html
 csv-prototyped graph:
-![rendered from 2018-04-14T18:14:00Z,200](rendered_graph.png)
+![rendered from 2018-04-14T18:14:00Z,200](prototype/rendered_graph.png)
 
 ## client
 Adding the `-write` flag here would have written this output to the filesystem. Use the `-help` flag to see all options.
