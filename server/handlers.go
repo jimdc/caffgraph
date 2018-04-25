@@ -54,11 +54,11 @@ func DoseCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestHandler(w http.ResponseWriter, r *http.Request) {
-    p, err := loadPage("Title") //so it looks for Title.txt
+    p, err := loadPage("./Title") //so it looks for Title.txt
     if err != nil {
         fmt.Println(err)
     }
-    t, err := template.ParseFiles("test.html")
+    t, err := template.ParseFiles("./test.html")
     if err != nil {
         fmt.Println(err)
     }
