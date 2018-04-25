@@ -4,7 +4,7 @@
 <title>{{.Title}}</title>
 </head>
 <body>
-<h1>Henlo</h1>
+<h1>Henl2</h1>
 <h2>Make a table based on JSON data.</h2>
 
 <p id="demo"></p>
@@ -25,7 +25,7 @@ xmlhttp.onreadystatechange = function() {
         document.getElementById("demo").innerHTML = txt;
     }
 };
-xmlhttp.open("POST", "https://caffgraph.herokuapp.com/", true);
+xmlhttp.open("POST", "https://caffgraph.herokuapp.com/doses/", true);
 xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 xmlhttp.send("x=" + dbParam);
 
