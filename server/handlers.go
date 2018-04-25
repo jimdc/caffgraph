@@ -4,6 +4,7 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
+    "html/template"
     "io"
     "io/ioutil"
     "github.com/gorilla/mux"
@@ -50,4 +51,16 @@ func DoseCreate(w http.ResponseWriter, r *http.Request) {
     if err := json.NewEncoder(w).Encode(d); err != nil {
         panic(err)
     }
+}
+
+func TestHandler(w http.ResponseWriter, r *http.Request) {
+    p, err := loadPage("Title") //so it looks for Title.txt
+    if err != nil {
+        fmt.Println(err)
+    }
+    t, err := template.ParseFiles("test.html")
+    if err != nil {
+        fmt.Println(err)
+    }
+    t.Execute(w, p)
 }

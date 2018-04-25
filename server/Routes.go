@@ -36,5 +36,11 @@ var routes = Routes{
         "/doses",
         DoseCreate,
     },
+    Route{
+        "Test",
+        "GET",
+        "/test",
+        TestHandler,
+    },
 }
 
